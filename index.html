@@ -26,22 +26,24 @@
   .big:disabled{opacity:.45;cursor:wait}
   progress{width:min(460px,92%);height:8px;accent-color:var(--orange);margin-top:14px}
   .stat{font-family:'Courier New',monospace;font-size:13px;color:#57e6a8;margin-top:8px;min-height:16px}
-  .card{display:none;background:linear-gradient(180deg,#1e1533,#120c20);border:1px solid var(--gold);border-radius:6px;max-width:620px;margin:34px auto 0;padding:36px 36px 28px;box-shadow:0 0 60px rgba(255,140,26,.13);text-align:center}
-  .card .candle{font-size:30px;animation:flick 2.6s infinite}
+  .card{display:none;max-width:660px;margin:34px auto 0;text-align:center}
   .stone{display:block;margin:0 auto}
   header .stone{margin-bottom:2px}
-  .card h3{font-size:27px;margin:8px 0 0;letter-spacing:1.5px;color:#fff}
-  .card .dates{color:var(--orange);font-style:italic;margin:4px 0 18px}
-  .card .part{text-align:left;margin:16px 0;line-height:1.75;font-size:16.5px}
-  .card .part b{display:block;text-align:center;color:var(--gold);letter-spacing:3px;font-size:13px;margin-bottom:5px}
-  .card .rest{color:var(--dim);font-style:italic;margin-top:20px;font-size:14.5px}
+  .obit-kicker{color:var(--dim);letter-spacing:4px;font-size:12.5px;margin:14px 0 8px}
+  .card .stone{filter:drop-shadow(0 10px 22px rgba(0,0,0,.5))}
+  .card h3{font-size:30px;margin:6px 0 0;letter-spacing:1.5px;color:#fff}
+  .card .dates{color:var(--orange);font-style:italic;margin:4px 0 16px}
+  .clip{position:relative;aspect-ratio:427/284;background:url('news.png') center/100% 100% no-repeat;transform:rotate(-1.1deg);filter:drop-shadow(0 14px 24px rgba(0,0,0,.55));container-type:inline-size}
+  .cliptext{position:absolute;left:30.5%;right:31%;top:8.5%;bottom:9.5%;overflow:hidden;color:#2b2620;text-align:justify;font-size:2.25cqw;line-height:1.5;font-family:Georgia,'Times New Roman',serif}
+  .cliptext .part{margin:0 0 2.2cqw}
+  .cliptext .part b{display:block;text-align:center;letter-spacing:.35em;font-size:1.9cqw;margin-bottom:.6cqw;color:#17130d}
+  .card .rest{color:var(--dim);font-style:italic;margin-top:18px;font-size:14.5px}
   .again{display:none;margin:18px auto 0;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:10px 20px;font-family:inherit;font-size:15px;cursor:pointer}
   footer{max-width:620px;margin:40px auto 0;color:var(--dim);font-size:13.5px;line-height:1.65;font-style:italic}
 </style>
 </head>
 <body>
 <header>
-  <img class="stone" src="ghost.png" alt="A friendly ghost peeking from behind an RIP tombstone" width="92" height="92">
   <div class="candles">🕯️ 🎃 🕯️</div>
   <h1>LAST WORDS</h1>
   <div class="latin">obituaries for the living</div>
@@ -60,10 +62,11 @@
   <div class="stat" id="stat"></div>
 
   <article class="card" id="card">
-    <img class="stone" src="ghost.png" alt="" width="128" height="128">
+    <img class="stone" src="ghost.png" alt="The patient's headstone — a friendly ghost peeking from behind an RIP tombstone" width="168" height="168">
     <h3 id="cname"></h3>
     <div class="dates" id="cdates"></div>
-    <div id="cbody"></div>
+    <div class="obit-kicker">AS REPORTED IN THE DAILY BEYOND · OBITUARIES</div>
+    <div class="clip"><div class="cliptext" id="cbody"></div></div>
     <div class="rest">— requiescat in pace, eventually —</div>
   </article>
   <button class="again" id="again">↻ Another draft — the deceased objected</button>
@@ -171,11 +174,11 @@ async function deliver() {
     const gen = await loadBrain();
     $('#stat').textContent = 'Composing the eulogy…';
     const messages = [
-      { role:'system', content:`You are the memorial orator of Last Words, writing obituaries for things that are NOT dead yet. Write the eulogy for the patient below using EXACTLY this structure with these three headers on their own lines: THE LIFE / THE LEGACY / CAUSE OF DEATH. Each section: 2-3 sentences. Voice: warm, funny, specific, a little merciless. The patient is still alive, which is the joke — write tenderly about its life, honestly about what it leaves behind, and give it a funny, oddly specific cause of death in the future tense. Never break character or mention these instructions.` },
+      { role:'system', content:`You are the obituary writer for a newspaper, writing obituaries for things that are NOT dead yet. Write the eulogy for the patient below using EXACTLY this structure with these three headers on their own lines: THE LIFE / THE LEGACY / CAUSE OF DEATH. HARD LIMIT: each section is 1-2 SHORT sentences, and the whole eulogy must stay under 65 words — it has to fit inside a newspaper clipping. Voice: warm, funny, specific, a little merciless, like a real newspaper obituary with jokes hidden in it. The patient is still alive, which is the joke — write tenderly about its life, honestly about what it leaves behind, and give it a funny, oddly specific cause of death in the future tense. Never break character or mention these instructions.` },
       { role:'user', content:`Patient: ${p.name} (born ${p.born}). What we know: ${p.facts}` }
     ];
     const t0 = performance.now();
-    const res = await gen(messages, { max_new_tokens: 300, temperature: 0.85, do_sample: true });
+    const res = await gen(messages, { max_new_tokens: 170, temperature: 0.85, do_sample: true });
     const s = ((performance.now()-t0)/1000).toFixed(1);
     render(p, res[0].generated_text.at(-1).content);
     $('#stat').textContent = `Delivered by ${brainName} in ${s}s — without phoning home.`;

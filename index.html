@@ -116,23 +116,39 @@ $('#custom').addEventListener('input', e => {
 });
 
 let generator = null, brainName = 'Gemma (google/gemma-3-1b-it, in-browser)';
+const FORCE_QWEN = sessionStorage.getItem('lw-brain') === 'qwen';
+async function tryPipe(model, device) {
+  const opts = { dtype:'q4', progress_callback: p => {
+    if (p.status === 'progress' && p.total) $('#prog').value = Math.round(p.loaded/p.total*100);
+    if (p.status === 'done') $('#prog').value = 100; } };
+  if (device) opts.device = device;
+  return await pipeline('text-generation', model, opts);
+}
 async function loadBrain() {
   if (generator) return generator;
   const prog = $('#prog'); prog.style.display = 'block';
-  const opts = { dtype:'q4', progress_callback: p => {
-    if (p.status === 'progress' && p.total) prog.value = Math.round(p.loaded/p.total*100);
-    if (p.status === 'done') prog.value = 100; } };
-  try {
-    try { generator = await pipeline('text-generation', 'onnx-community/gemma-3-1b-it-ONNX', {...opts, device:'webgpu'}); }
-    catch(e) { generator = await pipeline('text-generation', 'onnx-community/gemma-3-1b-it-ONNX', opts); }
-  } catch(e) {
-    brainName = 'Qwen2.5 (open-weight fallback, in-browser)';
-    $('#brainline').textContent = 'Written by Qwen2.5 — an open-weight model — running entirely in your browser. (Gemma would not wake on this machine; the understudy performed.) Nothing left this page.';
-    try { generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {...opts, device:'webgpu'}); }
-    catch(e2) { generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', opts); }
+  let lastErr = null;
+  if (!FORCE_QWEN) {
+    for (const dev of ['webgpu', undefined]) {
+      try { generator = await tryPipe('onnx-community/gemma-3-1b-it-ONNX', dev); prog.style.display = 'none'; return generator; }
+      catch(e) { lastErr = e; }
+    }
+    /* Gemma failed in this page. A failed load can leave the engine in a
+       broken state, so the understudy gets a clean room: remember the
+       choice and reload once, then load Qwen in a pristine page. */
+    sessionStorage.setItem('lw-brain', 'qwen');
+    $('#stat').textContent = 'Gemma would not wake on this machine — one quick refresh, and the understudy performs in a clean room…';
+    setTimeout(() => location.reload(), 1000);
+    return new Promise(() => {});
+  }
+  brainName = 'Qwen2.5 (open-weight fallback, in-browser)';
+  $('#brainline').textContent = 'Written by Qwen2.5 — an open-weight model — running entirely in your browser. (Gemma would not wake on this machine; the understudy performed.) Nothing left this page.';
+  for (const dev of ['webgpu', undefined]) {
+    try { generator = await tryPipe('onnx-community/Qwen2.5-0.5B-Instruct', dev); prog.style.display = 'none'; return generator; }
+    catch(e) { lastErr = e; }
   }
   prog.style.display = 'none';
-  return generator;
+  throw lastErr || new Error('model load failed');
 }
 
 function patient() {
@@ -183,7 +199,8 @@ async function deliver() {
     render(p, res[0].generated_text.at(-1).content);
     $('#stat').textContent = `Delivered by ${brainName} in ${s}s — without phoning home.`;
   } catch(e) {
-    $('#stat').textContent = 'The orator could not wake in this browser: ' + e.message;
+    const msg = (e && e.message) ? e.message : String(e);
+    $('#stat').textContent = 'The orator could not wake in this browser: ' + msg + ' — try desktop Chrome, and tell Llama which browser this was.';
   }
   btn.disabled = false; $('#again').disabled = false;
 }

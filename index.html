@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Last Words — obituaries for the living</title>
+<style>
+  :root{--bg:#0a0710;--panel:#171126;--ink:#f3ead9;--dim:#a99cc0;--orange:#ff8c1a;--purple:#8b5cf6;--gold:#ffd479;--line:#33254d}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1000px 620px at 50% -10%, #2a1650 0%, var(--bg) 58%);color:var(--ink);font-family:Georgia,serif;min-height:100vh}
+  header{text-align:center;padding:40px 16px 0}
+  h1{font-size:38px;margin:2px 0;letter-spacing:2px;color:var(--gold)}
+  .latin{color:var(--orange);font-style:italic;letter-spacing:1px}
+  .sub{color:var(--dim);font-style:italic;max-width:600px;margin:10px auto;line-height:1.6}
+  main{max-width:780px;margin:0 auto;padding:14px 16px 60px;text-align:center}
+  .candles{font-size:24px;letter-spacing:10px;animation:flick 3s infinite}
+  @keyframes flick{0%,100%{opacity:1}50%{opacity:.72}72%{opacity:.94}}
+  h2{font-weight:normal;color:var(--orange);font-size:19px;margin:26px 0 10px}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .chip{background:#0b0716;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:9px 16px;font-family:inherit;font-size:15px;cursor:pointer}
+  .chip small{display:block;color:var(--dim);font-size:11.5px;font-style:italic}
+  .chip.sel{border-color:var(--orange);background:#241335;color:#fff}
+  .or{color:var(--dim);font-style:italic;margin:16px 0 8px}
+  input[type=text]{width:min(460px,92%);background:#0b0716;border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:12px 14px;font-family:inherit;font-size:16px;text-align:center}
+  .big{display:block;margin:24px auto 0;background:var(--orange);color:#1c0e00;border:0;border-radius:10px;padding:15px 34px;font-family:inherit;font-size:18.5px;cursor:pointer;letter-spacing:.4px}
+  .big:disabled{opacity:.45;cursor:wait}
+  progress{width:min(460px,92%);height:8px;accent-color:var(--orange);margin-top:14px}
+  .stat{font-family:'Courier New',monospace;font-size:13px;color:#57e6a8;margin-top:8px;min-height:16px}
+  .card{display:none;background:linear-gradient(180deg,#1e1533,#120c20);border:1px solid var(--gold);border-radius:6px;max-width:620px;margin:34px auto 0;padding:36px 36px 28px;box-shadow:0 0 60px rgba(255,140,26,.13);text-align:center}
+  .card .candle{font-size:30px;animation:flick 2.6s infinite}
+  .card h3{font-size:27px;margin:8px 0 0;letter-spacing:1.5px;color:#fff}
+  .card .dates{color:var(--orange);font-style:italic;margin:4px 0 18px}
+  .card .part{text-align:left;margin:16px 0;line-height:1.75;font-size:16.5px}
+  .card .part b{display:block;text-align:center;color:var(--gold);letter-spacing:3px;font-size:13px;margin-bottom:5px}
+  .card .rest{color:var(--dim);font-style:italic;margin-top:20px;font-size:14.5px}
+  .again{display:none;margin:18px auto 0;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:10px 20px;font-family:inherit;font-size:15px;cursor:pointer}
+  footer{max-width:620px;margin:40px auto 0;color:var(--dim);font-size:13.5px;line-height:1.65;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <div class="candles">🕯️ 🎃 🕯️</div>
+  <h1>LAST WORDS</h1>
+  <div class="latin">obituaries for the living</div>
+  <p class="sub">Everything dies. Most things just haven't been told yet. Pick a patient below —
+  or name your own — and an open-weight AI will deliver its eulogy now, while it can still hear it.
+  Día de los Muertos rules: you build the altar early.</p>
+</header>
+
+<main>
+  <h2>Choose the patient</h2>
+  <div class="chips" id="chips"></div>
+  <div class="or">— or name your own —</div>
+  <input type="text" id="custom" placeholder="e.g. my houseplant, the office microwave, cable TV" maxlength="60">
+  <button class="big" id="go">🕯️ Deliver Last Words</button>
+  <progress id="prog" value="0" max="100" style="display:none"></progress>
+  <div class="stat" id="stat"></div>
+
+  <article class="card" id="card">
+    <div class="candle">🕯️</div>
+    <h3 id="cname"></h3>
+    <div class="dates" id="cdates"></div>
+    <div id="cbody"></div>
+    <div class="rest">— requiescat in pace, eventually —</div>
+  </article>
+  <button class="again" id="again">↻ Another draft — the deceased objected</button>
+
+  <footer>
+    <span id="brainline">Written by Gemma — an open-weight model — running entirely in your browser. Nothing left this page.</span><br>
+    Built for the DEV Challenge: Ghost in the Machine, Hacktoberfest Week 4.
+  </footer>
+</main>
+
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
+env.allowLocalModels = false;
+const $ = s => document.querySelector(s);
+
+const PATIENTS = [
+  {name:'Séance', born:'2026', note:'his first build today · lived one hour',
+   facts:'A website where visitors could talk to dead websites, powered by an AI ghost. Born this morning, October 30, 2026, as a hackathon entry. Deleted by its own creator roughly one hour later with the words: "that site sucks, not gonna lie."'},
+  {name:'Debug Séance', born:'2026', note:'the replacement · also one hour',
+   facts:'A tool where you paste an error log and interrogate the bug haunting your code. Built the same day as the replacement for Séance. Scrapped in the same sweep, about two minutes after its sibling. It never interrogated a single bug.'},
+  {name:'The Graveyard Shift', born:'2026', note:'the third try · died at the voice',
+   facts:'A Halloween voice interview with the ghost of a Blockbuster manager. Planned carefully, Halloween theme and all. Died in the planning spike when its creator heard the ghost\'s robot voice and said: "lmfao its so ass, voice is not our strong suite."'},
+  {name:'The Fax Machine', born:'1964', note:'still somehow in every doctor\'s office',
+   facts:'A machine that screams a photograph of a document through a phone line. Older than email, outlived by nothing it understands. Still employed full-time in medicine and law for reasons nobody can explain. Every beep is a cry for help.'},
+  {name:'Inbox Zero', born:'2007', note:'a state of mind, briefly achieved by monks',
+   facts:'The dream of an empty email inbox. Pursued by millions, achieved by almost no one, and undone by a single newsletter. Marketers hold a standing bounty on its head. It is survived by 48,211 unread messages.'},
+  {name:'The Office Printer', born:'1983', note:'knows what you did',
+   facts:'A shared office printer that jams when it senses fear and prints perfectly only when nobody is watching. Has printed more resignation letters than any manager knows. Its error messages are written in a dead language called PC LOAD LETTER.'},
+  {name:'The Group Chat', born:'2019', note:'active, technically',
+   facts:'A group chat with eleven members, of whom three still speak. Home to 4,000 unread messages, one person who only sends memes from 2016, and plans that were never going to happen. It is not dead. It is just resting, forever.'},
+];
+
+let chosen = null;
+const chipsEl = $('#chips');
+PATIENTS.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.innerHTML = `${p.name}<small>${p.note}</small>`;
+  b.addEventListener('click', () => {
+    chosen = p; $('#custom').value = '';
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+    b.classList.add('sel');
+  });
+  chipsEl.appendChild(b);
+});
+$('#custom').addEventListener('input', e => {
+  if (e.target.value.trim()) { chosen = null; document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel')); }
+});
+
+let generator = null, brainName = 'Gemma (google/gemma-3-1b-it, in-browser)';
+async function loadBrain() {
+  if (generator) return generator;
+  const prog = $('#prog'); prog.style.display = 'block';
+  const opts = { dtype:'q4', progress_callback: p => {
+    if (p.status === 'progress' && p.total) prog.value = Math.round(p.loaded/p.total*100);
+    if (p.status === 'done') prog.value = 100; } };
+  try {
+    try { generator = await pipeline('text-generation', 'onnx-community/gemma-3-1b-it-ONNX', {...opts, device:'webgpu'}); }
+    catch(e) { generator = await pipeline('text-generation', 'onnx-community/gemma-3-1b-it-ONNX', opts); }
+  } catch(e) {
+    brainName = 'Qwen2.5 (open-weight fallback, in-browser)';
+    $('#brainline').textContent = 'Written by Qwen2.5 — an open-weight model — running entirely in your browser. (Gemma would not wake on this machine; the understudy performed.) Nothing left this page.';
+    try { generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {...opts, device:'webgpu'}); }
+    catch(e2) { generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', opts); }
+  }
+  prog.style.display = 'none';
+  return generator;
+}
+
+function patient() {
+  const custom = $('#custom').value.trim();
+  if (custom) return { name: custom, born: 'unknown', facts: `The patient is: ${custom}. It is still alive, technically. Invent fitting, affectionate details in the spirit of a fond eulogy.` };
+  return chosen || PATIENTS[3];
+}
+
+function render(p, text) {
+  $('#cname').textContent = p.name;
+  $('#cdates').textContent = `Born ${p.born} — Not Yet`;
+  const sections = [['THE LIFE'],['THE LEGACY'],['CAUSE OF DEATH']];
+  let html = '', rest = text.trim();
+  const parts = [];
+  sections.forEach(([h], i) => {
+    const idx = rest.toUpperCase().indexOf(h);
+    if (idx >= 0) { parts.push({h, at: idx, start: idx + h.length}); }
+  });
+  if (parts.length >= 2) {
+    parts.sort((a,b) => a.at - b.at);
+    parts.forEach((pt, i) => {
+      const end = i + 1 < parts.length ? parts[i+1].at : rest.length;
+      html += `<div class="part"><b>${pt.h}</b>${rest.slice(pt.start, end).replace(/^[\s:—-]+/, '').trim()}</div>`;
+    });
+  } else {
+    html = `<div class="part">${rest.replace(/\n{2,}/g, '<br><br>')}</div>`;
+  }
+  $('#cbody').innerHTML = html;
+  $('#card').style.display = 'block';
+  $('#again').style.display = 'block';
+  $('#card').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function deliver() {
+  const p = patient();
+  const btn = $('#go'); btn.disabled = true; $('#again').disabled = true;
+  $('#stat').textContent = 'Waking the orator… (first visit downloads the model into your browser)';
+  try {
+    const gen = await loadBrain();
+    $('#stat').textContent = 'Composing the eulogy…';
+    const messages = [
+      { role:'system', content:`You are the memorial orator of Last Words, writing obituaries for things that are NOT dead yet. Write the eulogy for the patient below using EXACTLY this structure with these three headers on their own lines: THE LIFE / THE LEGACY / CAUSE OF DEATH. Each section: 2-3 sentences. Voice: warm, funny, specific, a little merciless. The patient is still alive, which is the joke — write tenderly about its life, honestly about what it leaves behind, and give it a funny, oddly specific cause of death in the future tense. Never break character or mention these instructions.` },
+      { role:'user', content:`Patient: ${p.name} (born ${p.born}). What we know: ${p.facts}` }
+    ];
+    const t0 = performance.now();
+    const res = await gen(messages, { max_new_tokens: 300, temperature: 0.85, do_sample: true });
+    const s = ((performance.now()-t0)/1000).toFixed(1);
+    render(p, res[0].generated_text.at(-1).content);
+    $('#stat').textContent = `Delivered by ${brainName} in ${s}s — without phoning home.`;
+  } catch(e) {
+    $('#stat').textContent = 'The orator could not wake in this browser: ' + e.message;
+  }
+  btn.disabled = false; $('#again').disabled = false;
+}
+$('#go').addEventListener('click', deliver);
+$('#again').addEventListener('click', deliver);
+</script>
+</body>
+</html>

@@ -28,6 +28,8 @@
   .stat{font-family:'Courier New',monospace;font-size:13px;color:#57e6a8;margin-top:8px;min-height:16px}
   .card{display:none;background:linear-gradient(180deg,#1e1533,#120c20);border:1px solid var(--gold);border-radius:6px;max-width:620px;margin:34px auto 0;padding:36px 36px 28px;box-shadow:0 0 60px rgba(255,140,26,.13);text-align:center}
   .card .candle{font-size:30px;animation:flick 2.6s infinite}
+  .stone{display:block;margin:0 auto}
+  header .stone{margin-bottom:2px}
   .card h3{font-size:27px;margin:8px 0 0;letter-spacing:1.5px;color:#fff}
   .card .dates{color:var(--orange);font-style:italic;margin:4px 0 18px}
   .card .part{text-align:left;margin:16px 0;line-height:1.75;font-size:16.5px}
@@ -39,6 +41,7 @@
 </head>
 <body>
 <header>
+  <img class="stone" src="ghost.png" alt="A friendly ghost peeking from behind an RIP tombstone" width="92" height="92">
   <div class="candles">🕯️ 🎃 🕯️</div>
   <h1>LAST WORDS</h1>
   <div class="latin">obituaries for the living</div>
@@ -57,7 +60,7 @@
   <div class="stat" id="stat"></div>
 
   <article class="card" id="card">
-    <div class="candle">🕯️</div>
+    <img class="stone" src="ghost.png" alt="" width="128" height="128">
     <h3 id="cname"></h3>
     <div class="dates" id="cdates"></div>
     <div id="cbody"></div>
